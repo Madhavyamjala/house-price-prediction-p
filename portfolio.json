@@ -1,0 +1,13 @@
+{
+  "title": "House Price Prediction Pipeline",
+  "summary": "An end-to-end MLOps pipeline for the Ames Housing dataset, orchestrated with ZenML and tracked and deployed with MLflow.",
+  "highlights": [
+    "Modular ZenML steps: ingestion, imputation, feature engineering, outliers, training, evaluation",
+    "Experiment tracking and model serving with MLflow",
+    "Strategy, Factory and Template Method patterns for swappable components"
+  ],
+  "tags": ["MLOps", "ZenML", "MLflow", "scikit-learn"],
+  "section": "work",
+  "folder": "Machine Learning",
+  "order": 4
+}

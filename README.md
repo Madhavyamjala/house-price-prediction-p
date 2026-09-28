@@ -1,143 +1,87 @@
-# House Price Prediction Model
+# House Price Prediction: an MLOps Pipeline with ZenML and MLflow
 
-This project is a comprehensive machine learning solution that predicts house prices based on various features. The project follows MLOps principles, including CI/CD pipelines, experiment tracking, and orchestration, to ensure efficient and reproducible workflows. It also implements software design patterns to make the codebase scalable and maintainable.
+An end-to-end machine learning pipeline that predicts house sale prices from the [Ames Housing dataset](https://www.kaggle.com/datasets/prevek18/ames-housing-dataset). The focus is on **engineering the workflow** rather than the model itself: modular pipeline steps orchestrated by **ZenML**, experiments and models tracked with **MLflow**, a deployable prediction service, and code organised around classic design patterns (Strategy, Factory, Template Method).
 
-## Features
-- **Machine Learning**: Implements various ML algorithms for house price prediction.
-- **MLOps Integration**: Includes CI/CD pipelines for continuous model development and deployment.
-- **Experiment Tracking**: Utilizes MLflow to track experiments, models, and hyperparameters.
-- **Pipeline Orchestration**: ZenML is used to orchestrate and deploy ML pipelines.
-- **Design Patterns**: The code follows best practices and design patterns to ensure modularity and scalability.
+## Pipeline
 
-## Tech Stack
-- **Python 3.8+**
-- **MLflow**: For experiment tracking.
-- **ZenML**: For pipeline orchestration and model deployment.
-- **Pandas, Scikit-learn**: For data preprocessing and model development.
-- **TensorFlow**: For deep learning models.
-- **Flask**: (Optional) For serving the model as a web service.
-- **Docker & Kubernetes**: (Optional) For containerization and deployment at scale.
-
-## Installation and Setup
-
-### Prerequisites
-- Python 3.8+
-- Git
-- Virtual environment tools (`venv` or `virtualenv`)
-- ZenML and MLflow integrations
-
-### Step-by-Step Setup
-
-1. **Clone the Repository**
-
-   First, clone the project repository from GitHub:
-
-   ```bash
-   git clone https://github.com/Madhavyamjala/house-price-prediction.git
-   cd house-price-prediction
-   ```
-
-2. **Create a Virtual Environment**
-
-   Follow this guide to create a virtual environment: [Create Virtual Environment Guide](https://youtu.be/GZbeL5AcTgw?si=uj7B8-10kbyEytKo)
-
-   Once the virtual environment is activated:
-
-   ```bash
-   source venv/bin/activate  # For Linux/macOS
-   venv\Scripts\activate     # For Windows
-   ```
-
-3. **Install Required Dependencies**
-
-   Install all necessary Python libraries and dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Install ZenML and MLflow Integrations**
-
-   The project uses ZenML for pipeline orchestration and MLflow for tracking experiments. Install the necessary integrations:
-
-   ```bash
-   zenml integration install mlflow -y
-   ```
-
-5. **Configure the ZenML Stack**
-
-   You need to configure the ZenML stack with the experiment tracker and model deployer:
-
-   ```bash
-   zenml experiment-tracker register mlflow_tracker --flavor=mlflow
-   zenml model-deployer register mlflow --flavor=mlflow
-   zenml stack register local-mlflow-stack -a default -o default -d mlflow -e mlflow_tracker --set
-   ```
-
-6. **Run the ZenML Pipeline**
-
-   To execute the ML pipeline, use the `run_pipeline.py` script:
-
-   ```bash
-   python run_pipeline.py
-   ```
-
-7. **Deploy the Model**
-
-   If you'd like to deploy the model, use the `run_deployment.py` script:
-
-   ```bash
-   python run_deployment.py
-   ```
-
-## Project Structure
-
-```bash
-├── analysis            # Scripts and notebooks for data analysis
-├── data                # Raw and processed dataset files
-├── explanations        # Explanatory documentation or data insights
-├── extracted_data      # Extracted data from preprocessing steps
-├── mlruns              # MLflow run tracking artifacts
-├── pipelines           # ZenML pipelines for the project
-├── src                 # Source code for the model and utilities
-├── steps               # Individual steps in the ZenML pipeline
-├── tests               # Unit and integration tests for the codebase
-├── config.yaml         # Configuration file for the project
-├── requirements.txt    # Python dependencies
-├── run_deployment.py   # Script for deploying the model
-├── run_pipeline.py     # Script for running the ZenML pipeline
-├── sample_predict.py   # Script for running a sample prediction
+```mermaid
+flowchart LR
+    A[Ingest<br/>zip → DataFrame] --> B[Handle missing values]
+    B --> C[Feature engineering]
+    C --> D[Outlier detection]
+    D --> E[Train/test split]
+    E --> F["Model building<br/>StandardScaler + LinearRegression"]
+    F --> G[Evaluation<br/>MSE · RMSE · MAE · R²]
+    F -. MLflow tracking .-> H[(MLflow)]
+    G --> I[Deployment pipeline<br/>MLflow model server]
 ```
 
-## Experiment Tracking with MLflow
+Each box is a ZenML step in [`steps/`](steps). The logic behind each step is in [`src/`](src) and is implemented as a swappable **strategy**, so you can change the imputation method, feature transform or model without touching the pipeline.
 
-All experiments are tracked using MLflow, which logs:
-- Model artifacts
-- Hyperparameters
-- Performance metrics (e.g., accuracy, loss)
+## Project structure
 
-You can visualize the experiment results using the MLflow UI:
-
-```bash
-mlflow ui
+```
+├── analysis/            EDA notebook + reusable analysis modules (univariate, bivariate, multivariate, missing values)
+├── src/                 core logic: ingestion, missing values, feature engineering, outliers, splitting, model building, evaluation
+├── steps/               ZenML step wrappers around src/ + prediction service loader
+├── pipelines/           training_pipeline.py and deployment_pipeline.py
+├── explanations/        small standalone examples of the Strategy, Factory and Template design patterns
+├── data/                raw dataset archive
+├── run_pipeline.py      run the training pipeline
+├── run_deployment.py    run the continuous deployment pipeline
+└── sample_predict.py    send a sample request to the deployed model
 ```
 
-## Orchestrating Pipelines with ZenML
+## Getting started
 
-ZenML orchestrates the ML pipelines and handles tasks such as data ingestion, training, evaluation, and deployment. You can modify the steps of the pipeline inside the `pipelines` and `steps` directories.
-
-## Testing
-
-Unit tests and integration tests are available in the `tests` folder. To run the tests, use the following command:
+**Requirements:** Python 3.8+.
 
 ```bash
-pytest tests/
+git clone https://github.com/Madhavyamjala/house-price-prediction-p.git
+cd house-price-prediction-p
+
+python -m venv venv
+# Windows: venv\Scripts\activate    Linux/macOS: source venv/bin/activate
+
+pip install -r requirements.txt
+zenml integration install mlflow -y
 ```
 
-## Contributing
+Register a ZenML stack that uses MLflow for experiment tracking and model deployment:
 
-Feel free to fork this repository and submit a pull request if you'd like to contribute. All contributions are welcome.
+```bash
+zenml experiment-tracker register mlflow_tracker --flavor=mlflow
+zenml model-deployer register mlflow --flavor=mlflow
+zenml stack register local-mlflow-stack -a default -o default -d mlflow -e mlflow_tracker --set
+```
+
+Then train, deploy and query the model:
+
+```bash
+python run_pipeline.py      # train + log to MLflow
+mlflow ui                   # inspect runs at http://localhost:5000
+python run_deployment.py    # deploy the model as a local prediction server
+python sample_predict.py    # send a sample prediction request
+```
+
+## Design patterns
+
+The [`explanations/`](explanations) folder has minimal examples of each pattern used in the pipeline:
+
+- **Strategy:** interchangeable algorithms for imputation, feature engineering, outlier handling and model building.
+- **Factory:** creates the right data ingestor for a given file type.
+- **Template Method:** a fixed analysis flow with overridable steps for EDA.
+
+## Tech stack
+
+Python · pandas · scikit-learn · ZenML · MLflow · matplotlib / seaborn · statsmodels
+
+## Roadmap
+
+- Stronger models (gradient boosting, regularised regression) compared side by side in MLflow
+- Unit tests for the `src/` strategies
+- CI with GitHub Actions
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+MIT. See [LICENSE](LICENSE).
